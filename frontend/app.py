@@ -530,8 +530,7 @@ def create_depth_profile_chart(data):
             colorscale='RdYlBu_r',  # Red-Yellow-Blue reversed
             showscale=True,
             colorbar=dict(
-                title="Temperature (°C)",
-                titleside="right",
+                title=dict(text="Temperature (°C)", side="right"),
                 thickness=15
             ),
             cmin=data['temperature'].min(),
@@ -1023,11 +1022,7 @@ def show_chat_page():
             """, unsafe_allow_html=True)
             
             if st.button("🌡️ Temperature Data", key="temp_suggestion", use_container_width=True):
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": "Show temperature trends in the Pacific"
-                })
-                st.rerun()
+                process_chat_query("Show temperature trends in the Pacific")
             
             st.markdown("""
             <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
@@ -1044,11 +1039,7 @@ def show_chat_page():
             """, unsafe_allow_html=True)
             
             if st.button("🗺️ Ocean Maps", key="map_suggestion", use_container_width=True):
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": "Create a map of current data"
-                })
-                st.rerun()
+                process_chat_query("Create a map of current data")
         
         with col2:
             st.markdown("""
@@ -1066,11 +1057,7 @@ def show_chat_page():
             """, unsafe_allow_html=True)
             
             if st.button("🧂 Salinity Patterns", key="salinity_suggestion", use_container_width=True):
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": "What's the salinity near the equator?"
-                })
-                st.rerun()
+                process_chat_query("What's the salinity near the equator?")
                 
             st.markdown("""
             <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
@@ -1087,11 +1074,7 @@ def show_chat_page():
             """, unsafe_allow_html=True)
             
             if st.button("📊 Data Analysis", key="analysis_suggestion", use_container_width=True):
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": "Analyze depth profiles by region"
-                })
-                st.rerun()
+                process_chat_query("Analyze depth profiles by region")
         
     else:
         # Display chat messages
@@ -1138,59 +1121,19 @@ def show_chat_page():
         
         with col1:
             if st.button("� Pacific Ocean Analysis", use_container_width=True):
-                query_text = "Show me temperature and salinity data for the Pacific Ocean"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Show me temperature and salinity data for the Pacific Ocean")
         
         with col2:
             if st.button("🧂 Indian Ocean Salinity", use_container_width=True, key="indian_salinity"):
-                query_text = "Analyze salinity patterns in the Indian Ocean"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Analyze salinity patterns in the Indian Ocean")
         
         with col3:
             if st.button("🌡️ Temperature Profiles", use_container_width=True, key="temp_profiles"):
-                query_text = "Show temperature distribution with depth profiles"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Show temperature distribution with depth profiles")
         
         with col4:
             if st.button("📈 Trend Analysis", use_container_width=True, key="trend_analysis"):
-                query_text = "What are the recent ocean temperature trends?"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("What are the recent ocean temperature trends?")
         
         # Row 2: Advanced Analysis
         st.markdown("#### 🔬 Advanced Ocean Research")
@@ -1198,59 +1141,19 @@ def show_chat_page():
         
         with col5:
             if st.button("🌍 Global Ocean Map", use_container_width=True, key="global_map"):
-                query_text = "Create a comprehensive global ocean data map"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Create a comprehensive global ocean data map")
         
         with col6:
             if st.button("📊 Statistical Summary", use_container_width=True, key="stats_summary"):
-                query_text = "Provide comprehensive statistical analysis of ocean data"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Provide comprehensive statistical analysis of ocean data")
         
         with col7:
             if st.button("🏝️ Arctic Waters", use_container_width=True, key="arctic_waters"):
-                query_text = "Analyze Arctic Ocean conditions and ice coverage"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Analyze Arctic Ocean conditions and ice coverage")
         
         with col8:
             if st.button("⚡ Live Data Status", use_container_width=True, key="live_status"):
-                query_text = "Show me live ocean data availability and status"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Show me live ocean data availability and status")
         
         # Row 3: Demo Showcase
         st.markdown("#### 🎯 SIH Demo Showcase")
@@ -1258,52 +1161,15 @@ def show_chat_page():
         
         with col9:
             if st.button("� Complete Ocean Analysis", use_container_width=True):
-                query_text = "Show me a complete analysis of ocean parameters with all visualizations"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Show me a complete analysis of ocean parameters with all visualizations")
         
         with col10:
             if st.button("🌊 Real-time Ocean Data", use_container_width=True, key="realtime_data"):
-                query_text = "Get the latest real-time ocean measurements from Argo network"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Get the latest real-time ocean measurements from Argo network")
         
         with col11:
             if st.button("🔥 System Performance", use_container_width=True, key="system_perf"):
-                query_text = "Demonstrate system capabilities and processing speed"
-                st.session_state.messages.append({
-                    "role": "user", 
-                    "content": query_text
-                })
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
-                # Process the query and get response
-                response = process_chat_query(query_text)
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response
-                })
-                st.rerun()
+                process_chat_query("Demonstrate system capabilities and processing speed")
 
 def show_dashboard_page():
     """Modern dashboard with key metrics and visualizations"""
@@ -1720,29 +1586,13 @@ def show_settings_page():
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("🌡️ Temperature trends", use_container_width=True, key="temp_trends_btn"):
-            # Instead of modifying chat_input, add to messages directly
-            st.session_state.messages.append({
-                "role": "user", 
-                "content": "Show me temperature trends in the Pacific Ocean"
-            })
-            st.session_state.current_page = 'chat'
-            st.rerun()
+            process_chat_query("Show me temperature trends in the Pacific Ocean")
     with col2:
         if st.button("🧂 Salinity data", use_container_width=True, key="salinity_data_btn"):
-            st.session_state.messages.append({
-                "role": "user", 
-                "content": "What's the salinity distribution in the Atlantic?"
-            })
-            st.session_state.current_page = 'chat'
-            st.rerun()
+            process_chat_query("What's the salinity distribution in the Atlantic?")
     with col3:
         if st.button("📏 Depth analysis", use_container_width=True, key="depth_analysis_btn"):
-            st.session_state.messages.append({
-                "role": "user", 
-                "content": "Analyze depth profiles near the equator"
-            })
-            st.session_state.current_page = 'chat'
-            st.rerun()
+            process_chat_query("Analyze depth profiles near the equator")
     
     # Process chat input
     if send_button and user_input:
@@ -1839,13 +1689,14 @@ def show_settings_page():
                 st.markdown("<hr style='margin: 2rem 0; border: none; height: 1px; background: #e2e8f0;'>", unsafe_allow_html=True)
 
 def process_chat_query(user_input):
-    """Process user chat query"""
+    """Process user chat query with visualizations"""
     with st.spinner("🔍 Searching ocean data..."):
         # Query the API
         data = query_ocean_api(user_input)
         
-        # Generate response
+        # Generate response and visualizations
         if data is not None and not data.empty:
+            # Display textual response
             response = f"""
             🌊 Found {len(data)} ocean measurements based on your query!
             
@@ -1854,26 +1705,113 @@ def process_chat_query(user_input):
             - Salinity range: {data['salinity'].min():.1f} to {data['salinity'].max():.1f} PSU
             - Depth range: {data['depth'].min():.0f}m to {data['depth'].max():.0f}m
             - Data from {data['platform_id'].nunique()} different platforms
-            
-            The visualizations below show the spatial distribution, depth profiles, and temporal patterns in your data.
             """
+            
+            # Generate and display visualizations
+            st.write(response)
+            st.markdown("---")
+            st.markdown("### 📊 Data Visualizations")
+            
+            # Create visualizations in columns
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("#### 🌡️ Temperature vs Depth Profile")
+                temp_depth_fig = create_depth_profile_chart(data)
+                if temp_depth_fig:
+                    st.plotly_chart(temp_depth_fig, use_container_width=True)
+                else:
+                    st.info("Temperature depth profile not available for this dataset")
+            
+            with col2:
+                st.markdown("#### 📈 Advanced Statistics")
+                stats_fig = create_advanced_statistics_chart(data)
+                if stats_fig:
+                    st.plotly_chart(stats_fig, use_container_width=True)
+                else:
+                    st.info("Statistical analysis not available for this dataset")
+            
+            # Map visualization if coordinates are available
+            if 'latitude' in data.columns and 'longitude' in data.columns:
+                st.markdown("#### 🗺️ Spatial Distribution")
+                try:
+                    # Create a simple map
+                    map_center = [data['latitude'].mean(), data['longitude'].mean()]
+                    m = folium.Map(location=map_center, zoom_start=5)
+                    
+                    # Add sample of data points (limit to 50 for performance)
+                    sample_data = data.sample(min(50, len(data)))
+                    
+                    for _, row in sample_data.iterrows():
+                        folium.CircleMarker(
+                            [row['latitude'], row['longitude']],
+                            radius=5,
+                            popup=f"Temp: {row['temperature']:.1f}°C<br>Salinity: {row['salinity']:.1f}",
+                            color='blue',
+                            fill=True,
+                            opacity=0.7
+                        ).add_to(m)
+                    
+                    st_folium(m, width=700, height=400, key=f"map_{len(st.session_state.messages)}")
+                    
+                except Exception as e:
+                    st.info(f"Map visualization not available: {str(e)}")
+            
+            # Data table
+            st.markdown("#### 📋 Sample Data")
+            st.dataframe(data.head(10), use_container_width=True)
+            
+            return "Visualizations generated successfully!"
+            
         else:
             response = "❌ Sorry, I couldn't find any ocean data matching your query. Please try rephrasing your question or check different parameters."
-            data = None
-        
-        # Add to chat history
-        st.session_state.chat_history.append({
-            'user': user_input,
-            'assistant': response,
-            'data': data,
-            'timestamp': datetime.now()
-        })
-        
-        # Update query count
-        st.session_state.query_count += 1
-        
-        # Return the response for immediate display
-        return response
+            st.write(response)
+            
+            # Show demo visualizations with synthetic data
+            st.markdown("---")
+            st.markdown("### 📊 Demo Visualizations (Sample Data)")
+            st.info("🎯 Since no data was found, here are sample visualizations to show system capabilities:")
+            
+            # Generate sample data
+            sample_data = generate_sample_ocean_data()
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("#### 🌡️ Sample Temperature Profile")
+                temp_fig = create_depth_profile_chart(sample_data)
+                if temp_fig:
+                    st.plotly_chart(temp_fig, use_container_width=True)
+            
+            with col2:
+                st.markdown("#### 📈 Sample Statistics")
+                stats_fig = create_advanced_statistics_chart(sample_data)
+                if stats_fig:
+                    st.plotly_chart(stats_fig, use_container_width=True)
+            
+            return response
+
+def generate_sample_ocean_data():
+    """Generate sample ocean data for demonstration"""
+    import pandas as pd
+    import numpy as np
+    
+    # Create sample data
+    n_points = 100
+    depths = np.random.uniform(0, 2000, n_points)
+    temperatures = 25 - (depths / 100) + np.random.normal(0, 2, n_points)
+    salinities = 35 + np.random.normal(0, 1, n_points)
+    latitudes = np.random.uniform(-60, 60, n_points)
+    longitudes = np.random.uniform(-180, 180, n_points)
+    
+    return pd.DataFrame({
+        'depth': depths,
+        'temperature': temperatures,
+        'salinity': salinities,
+        'latitude': latitudes,
+        'longitude': longitudes,
+        'platform_id': [f"DEMO_{i%10}" for i in range(n_points)]
+    })
 
 def show_dashboard():
     """Display the main dashboard"""

@@ -1151,7 +1151,7 @@ def show_chat_page():
                 st.rerun()
         
         with col2:
-            if st.button("🧂 Indian Ocean Salinity", use_container_width=True):
+            if st.button("🧂 Indian Ocean Salinity", use_container_width=True, key="indian_salinity"):
                 query_text = "Analyze salinity patterns in the Indian Ocean"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1165,7 +1165,7 @@ def show_chat_page():
                 st.rerun()
         
         with col3:
-            if st.button("🌡️ Temperature Profiles", use_container_width=True):
+            if st.button("🌡️ Temperature Profiles", use_container_width=True, key="temp_profiles"):
                 query_text = "Show temperature distribution with depth profiles"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1179,7 +1179,7 @@ def show_chat_page():
                 st.rerun()
         
         with col4:
-            if st.button("📈 Trend Analysis", use_container_width=True):
+            if st.button("📈 Trend Analysis", use_container_width=True, key="trend_analysis"):
                 query_text = "What are the recent ocean temperature trends?"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1197,7 +1197,7 @@ def show_chat_page():
         col5, col6, col7, col8 = st.columns(4)
         
         with col5:
-            if st.button("🌍 Global Ocean Map", use_container_width=True):
+            if st.button("🌍 Global Ocean Map", use_container_width=True, key="global_map"):
                 query_text = "Create a comprehensive global ocean data map"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1211,7 +1211,7 @@ def show_chat_page():
                 st.rerun()
         
         with col6:
-            if st.button("📊 Statistical Summary", use_container_width=True):
+            if st.button("📊 Statistical Summary", use_container_width=True, key="stats_summary"):
                 query_text = "Provide comprehensive statistical analysis of ocean data"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1225,7 +1225,7 @@ def show_chat_page():
                 st.rerun()
         
         with col7:
-            if st.button("🏝️ Arctic Waters", use_container_width=True):
+            if st.button("🏝️ Arctic Waters", use_container_width=True, key="arctic_waters"):
                 query_text = "Analyze Arctic Ocean conditions and ice coverage"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1239,7 +1239,7 @@ def show_chat_page():
                 st.rerun()
         
         with col8:
-            if st.button("⚡ Live Data Status", use_container_width=True):
+            if st.button("⚡ Live Data Status", use_container_width=True, key="live_status"):
                 query_text = "Show me live ocean data availability and status"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1271,7 +1271,7 @@ def show_chat_page():
                 st.rerun()
         
         with col10:
-            if st.button("🌊 Real-time Ocean Data", use_container_width=True):
+            if st.button("🌊 Real-time Ocean Data", use_container_width=True, key="realtime_data"):
                 query_text = "Get the latest real-time ocean measurements from Argo network"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1285,7 +1285,7 @@ def show_chat_page():
                 st.rerun()
         
         with col11:
-            if st.button("🔥 System Performance", use_container_width=True):
+            if st.button("🔥 System Performance", use_container_width=True, key="system_perf"):
                 query_text = "Demonstrate system capabilities and processing speed"
                 st.session_state.messages.append({
                     "role": "user", 
@@ -1529,18 +1529,30 @@ def show_maps_page():
     """, unsafe_allow_html=True)
     
     # Display the stable map
-    map_data = st_folium(
-        st.session_state.map_data, 
-        width=700, 
-        height=500,
-        key="ocean_map",  # Stable key prevents re-rendering
-        returned_objects=["last_object_clicked"]
-    )
+    try:
+        map_data = st_folium(
+            st.session_state.map_data, 
+            width=700, 
+            height=500,
+            key="ocean_map",  # Stable key prevents re-rendering
+            returned_objects=["last_object_clicked"],
+            feature_group_to_add=None,
+            use_container_width=True
+        )
+        
+        # Store clicked data in session state to prevent loss
+        if map_data and 'last_object_clicked' in map_data and map_data['last_object_clicked']:
+            st.session_state.last_clicked = map_data['last_object_clicked']
+        
+        # Display clicked location info from session state
+        if hasattr(st.session_state, 'last_clicked') and st.session_state.last_clicked:
+            clicked_data = st.session_state.last_clicked
+            with st.container():
+                st.info(f"📍 Last clicked location: Lat {clicked_data['lat']:.2f}, Lon {clicked_data['lng']:.2f}")
     
-    # Display clicked location info
-    if map_data['last_object_clicked']:
-        clicked_data = map_data['last_object_clicked']
-        st.info(f"📍 Last clicked location: Lat {clicked_data['lat']:.2f}, Lon {clicked_data['lng']:.2f}")
+    except Exception as e:
+        st.error(f"Map display error: {str(e)}")
+        st.info("🔄 Please refresh the page or try again")
     
     # Map statistics
     col1, col2, col3, col4 = st.columns(4)
@@ -1691,16 +1703,29 @@ def show_settings_page():
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("🌡️ Temperature trends", use_container_width=True):
-            st.session_state.chat_input = "Show me temperature trends in the Pacific Ocean"
+        if st.button("🌡️ Temperature trends", use_container_width=True, key="temp_trends_btn"):
+            # Instead of modifying chat_input, add to messages directly
+            st.session_state.messages.append({
+                "role": "user", 
+                "content": "Show me temperature trends in the Pacific Ocean"
+            })
+            st.session_state.current_page = 'chat'
             st.rerun()
     with col2:
-        if st.button("🧂 Salinity data", use_container_width=True):
-            st.session_state.chat_input = "What's the salinity distribution in the Atlantic?"
+        if st.button("🧂 Salinity data", use_container_width=True, key="salinity_data_btn"):
+            st.session_state.messages.append({
+                "role": "user", 
+                "content": "What's the salinity distribution in the Atlantic?"
+            })
+            st.session_state.current_page = 'chat'
             st.rerun()
     with col3:
-        if st.button("📏 Depth analysis", use_container_width=True):
-            st.session_state.chat_input = "Analyze depth profiles near the equator"
+        if st.button("📏 Depth analysis", use_container_width=True, key="depth_analysis_btn"):
+            st.session_state.messages.append({
+                "role": "user", 
+                "content": "Analyze depth profiles near the equator"
+            })
+            st.session_state.current_page = 'chat'
             st.rerun()
     
     # Process chat input

@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, text
+from sqlalchemy import and_, or_, text, func
 import random
 
 from app.core.database import SessionLocal
@@ -219,16 +219,16 @@ class NCDatabaseService:
                 
                 # Get temporal range
                 temporal_range = db.query(
-                    db.func.min(OceanMeasurement.measurement_time),
-                    db.func.max(OceanMeasurement.measurement_time)
+                    func.min(OceanMeasurement.measurement_time),
+                    func.max(OceanMeasurement.measurement_time)
                 ).first()
                 
                 # Get spatial bounds
                 spatial_bounds = db.query(
-                    db.func.min(OceanMeasurement.latitude),
-                    db.func.max(OceanMeasurement.latitude),
-                    db.func.min(OceanMeasurement.longitude),
-                    db.func.max(OceanMeasurement.longitude)
+                    func.min(OceanMeasurement.latitude),
+                    func.max(OceanMeasurement.latitude),
+                    func.min(OceanMeasurement.longitude),
+                    func.max(OceanMeasurement.longitude)
                 ).first()
                 
                 return {

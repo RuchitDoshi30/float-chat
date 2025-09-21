@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌊 OceanChat - AI-Powered Ocean Data Assistant</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Brand Header -->
+            <div class="brand-header">
+                <div class="brand-icon">🌊</div>
+                <div class="brand-text">
+                    <h1>OceanChat</h1>
+                    <p>AI Oceanographic Assistant</p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav-section">
+                <h3><i class="fas fa-compass"></i> Navigation</h3>
+                <div class="nav-buttons">
+                    <button class="nav-btn active" data-page="chat">
+                        <i class="fas fa-comments"></i> Chat
+                    </button>
+                    <button class="nav-btn" data-page="dashboard">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </button>
+                    <button class="nav-btn" data-page="maps">
+                        <i class="fas fa-globe"></i> Maps
+                    </button>
+                    <button class="nav-btn" data-page="analytics">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="profile-section">
+                <h3><i class="fas fa-user-circle"></i> User Profile</h3>
+                <div class="current-profile">
+                    <div class="profile-display">
+                        <span class="profile-icon">{{ profile_info.icon }}</span>
+                        <div class="profile-info">
+                            <div class="profile-name">{{ profile_info.name }}</div>
+                            <div class="profile-desc">{{ profile_info.description }}</div>
+                        </div>
+                    </div>
+                    <button class="switch-profile-btn" onclick="showProfileSelector()">
+                        <i class="fas fa-exchange-alt"></i> Switch
+                    </button>
+                </div>
+                
+                <!-- Profile Selector Modal (hidden by default) -->
+                <div class="profile-selector" id="profileSelector" style="display: none;">
+                    <div class="profile-options">
+                        {% for profile_id, profile in profiles.items() %}
+                        <div class="profile-option {{ 'active' if profile_id == current_profile else '' }}" 
+                             onclick="switchProfile('{{ profile_id }}')">
+                            <span class="profile-icon">{{ profile.icon }}</span>
+                            <div class="profile-details">
+                                <div class="profile-name">{{ profile.name }}</div>
+                                <div class="profile-desc">{{ profile.description }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="close-selector" onclick="hideProfileSelector()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="status-section">
+                <h3><i class="fas fa-server"></i> System Status</h3>
+                <div class="status-grid">
+                    <div class="status-card backend-status">
+                        <div class="status-label">Backend</div>
+                        <div class="status-value" id="backend-status">{{ system_status.backend_status }}</div>
+                    </div>
+                    <div class="status-card response-status">
+                        <div class="status-label">Response</div>
+                        <div class="status-value" id="response-time">{{ system_status.api_response_time }}</div>
+                    </div>
+                </div>
+                
+                <div class="system-metrics">
+                    <div class="metric-row">
+                        <span>🔗 Data Sources:</span>
+                        <span id="data-sources">{{ system_status.data_sources }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>🧠 NLP Engine:</span>
+                        <span>🟢 Active</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>📊 Visualization:</span>
+                        <span>🟢 Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Data Status -->
+            <div class="live-data-section">
+                <div class="live-data-card">
+                    <div class="live-data-header">
+                        <span class="live-indicator" id="live-indicator">
+                            {% if live_status.live_data_available %}🟢{% else %}🔴{% endif %}
+                        </span>
+                        <span>Live Argo Data</span>
+                    </div>
+                    <div class="live-data-info">
+                        <div class="live-metric">
+                            <span>Total Files:</span>
+                            <span id="total-files">{{ live_status.total_files or 0 }}</span>
+                        </div>
+                        <div class="live-metric">
+                            <span>Status:</span>
+                            <span id="live-status">{{ live_status.status or 'Unknown' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-content">
+                    <h1>🌊 OceanChat Assistant</h1>
+                    <p>Ask me anything about oceanographic data, maps, and analysis</p>
+                </div>
+                <div class="header-actions">
+                    <button class="action-btn" onclick="clearChat()">
+                        <i class="fas fa-trash"></i> Clear Chat
+                    </button>
+                    <button class="action-btn" onclick="refreshStatus()">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h3>🚀 Quick Actions</h3>
+                <div class="action-grid">
+                    <button class="quick-action-btn" data-action="temperature">
+                        <i class="fas fa-thermometer-half"></i>
+                        <span>Temperature Analysis</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="map">
+                        <i class="fas fa-map"></i>
+                        <span>Generate Map</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="metrics">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Data Metrics</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Full Dashboard</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="salinity">
+                        <i class="fas fa-tint"></i>
+                        <span>Salinity Analysis</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="charts">
+                        <i class="fas fa-chart-area"></i>
+                        <span>Advanced Charts</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="global">
+                        <i class="fas fa-globe-americas"></i>
+                        <span>Global Analysis</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="status">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>System Status</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Welcome Message -->
+                    <div class="message assistant-message welcome-message">
+                        <div class="message-avatar">🌊</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="sender-name">OceanChat Assistant</span>
+                                <span class="message-time">Ready</span>
+                            </div>
+                            <div class="message-text">
+                                Welcome to OceanChat! I'm your AI-powered oceanographic assistant. 
+                                Ask me about ocean temperatures, salinity patterns, depth profiles, or use the quick action buttons above. 
+                                I can create interactive maps, charts, and provide detailed analysis of ocean data.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <div class="message-avatar">🌊</div>
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <input type="text" 
+                               id="chatInput" 
+                               placeholder="Ask about ocean data, temperatures, maps, or analysis..."
+                               autocomplete="off">
+                        <button id="sendButton" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <strong>🏆 Smart India Hackathon 2025</strong> • 
+        🌊 OceanChat - AI-Powered Oceanographic Analysis Platform • 
+        🚀 Powered by Real-time Argo Network Data • 
+        💡 Innovative Ocean Intelligence
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Processing your request...</p>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+
+    <!-- Initialize app -->
+    <script>
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌊 OceanChat initialized');
+            
+            // Auto-refresh system status every 30 seconds
+            setInterval(refreshStatus, 30000);
+            
+            // Focus on chat input
+            document.getElementById('chatInput').focus();
+        });
+    </script>
+</body>
+</html>

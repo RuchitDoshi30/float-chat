@@ -7,8 +7,6 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import folium
-from streamlit_folium import st_folium
 import pandas as pd
 import numpy as np
 import requests
@@ -59,7 +57,25 @@ st.markdown("""
     /* Main content area */
     .main > div {
         background: transparent;
-        padding: 2rem;
+        padding: 1rem;  /* Reduced padding for more space */
+        max-width: 100% !important;  /* Use full width */
+    }
+    
+    /* Full width containers for better visualization */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 100% !important;
+    }
+    
+    /* Chart containers - use full width */
+    .stPlotlyChart {
+        width: 100% !important;
+    }
+    
+    /* Tab containers - full width */
+    .stTabs [data-baseweb="tab-list"] {
+        width: 100%;
     }
     
     /* Sidebar styling */
@@ -326,6 +342,39 @@ st.markdown("""
         margin: 0.5rem 0;
         border: 1px solid rgba(74, 85, 104, 0.3);
     }
+    
+    /* Custom 900px width for charts and tables */
+    .chart-container-900 {
+        width: 900px !important;
+        max-width: 900px !important;
+        margin: 0 auto !important;
+    }
+    
+    .chart-container-900 .stPlotlyChart {
+        width: 900px !important;
+        max-width: 900px !important;
+    }
+    
+    .chart-container-900 .js-plotly-plot {
+        width: 900px !important;
+        max-width: 900px !important;
+    }
+    
+    .table-container-900 {
+        width: 900px !important;
+        max-width: 900px !important;
+        margin: 0 auto !important;
+    }
+    
+    .table-container-900 .stDataFrame {
+        width: 900px !important;
+        max-width: 900px !important;
+    }
+    
+    .table-container-900 div[data-testid="stDataFrame"] {
+        width: 900px !important;
+        max-width: 900px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -337,34 +386,44 @@ if 'current_data' not in st.session_state:
 if 'query_count' not in st.session_state:
     st.session_state.query_count = 0
 
-# Configuration
-API_BASE_URL = "http://localhost:8000"
-
 # Helper functions
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def fetch_live_data_status():
     """Fetch live data status from the backend API."""
     try:
-        response = requests.get(f"{API_BASE_URL}/api/v1/live-data/status", timeout=5)
+        response = requests.get(f"{BACKEND_URL}/api/v1/live-data/status", timeout=5)
         if response.status_code == 200:
             data = response.json()
             if data.get("success"):
                 return data.get("live_data_status", {})
-        return None
+        return {
+            "status": "unavailable",
+            "argo_files_available": 0,
+            "last_update": "N/A"
+        }
+    except requests.exceptions.ConnectionError:
+        return {
+            "status": "backend_offline",
+            "argo_files_available": 0,
+            "last_update": "N/A"
+        }
     except Exception as e:
-        st.warning(f"⚠️ Could not fetch live data status: {e}")
-        return None
+        return {
+            "status": "error",
+            "argo_files_available": 0,
+            "last_update": f"Error: {str(e)[:50]}"
+        }
 
 @st.cache_data(ttl=60)  # Cache for 1 minute
 def fetch_system_status():
     """Fetch comprehensive system status for demo"""
     try:
-        # Get backend health
-        health_response = requests.get(f"{BACKEND_URL}/api/v1/health", timeout=5)
+        # Get backend health with shorter timeout
+        health_response = requests.get(f"{BACKEND_URL}/api/v1/health", timeout=2)
         health_data = health_response.json() if health_response.status_code == 200 else {}
         
-        # Get live data status
-        live_response = requests.get(f"{BACKEND_URL}/api/v1/live-data/status", timeout=5)
+        # Get live data status with shorter timeout
+        live_response = requests.get(f"{BACKEND_URL}/api/v1/live-data/status", timeout=2)
         live_data = live_response.json() if live_response.status_code == 200 else {}
         
         # Calculate system metrics
@@ -377,12 +436,13 @@ def fetch_system_status():
             "api_response_time": api_response_time,
             "data_sources": data_sources,
             "live_data_status": live_data.get("status", "Unknown"),
-            "connection_health": "✅ All Systems Operational",
+            "connection_health": "✅ All Systems Operational" if health_response.status_code == 200 else "⚠️ Backend Unavailable",
             "query_processing": "🚀 NLP Engine Active",
             "visualization": "📊 All Charts Ready",
             "total_files": live_data.get("total_files", 0)
         }
-    except Exception as e:
+    except (requests.exceptions.RequestException, requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        # Return graceful fallback status without showing error details  
         return {
             "backend_status": "🔴 Connection Error",
             "api_response_time": "N/A",
@@ -414,12 +474,18 @@ def load_sample_data():
 def query_ocean_api(user_query):
     """Query the ocean data API"""
     try:
+        # Debug: Show what URL we're trying to connect to
+        st.info(f"🔍 Connecting to: {BACKEND_URL}/api/v1/query")
+        
         # Call the actual backend API
         response = requests.post(
             f"{BACKEND_URL}/api/v1/query",
             json={"query": user_query},
             timeout=30
         )
+        
+        # Debug: Show response status
+        st.info(f"📡 Response status: {response.status_code}")
         
         if response.status_code == 200:
             api_response = response.json()
@@ -469,48 +535,53 @@ def query_ocean_api(user_query):
         return load_sample_data().sample(50)
 
 def create_temperature_map(data):
-    """Create an interactive temperature map"""
+    """Create an interactive temperature map using Plotly"""
     if data is None or data.empty:
         return None
     
-    # Create base map
-    m = folium.Map(
-        location=[data['latitude'].mean(), data['longitude'].mean()],
-        zoom_start=3,
-        tiles='CartoDB positron'
+    # Create Plotly scatter mapbox
+    fig = px.scatter_mapbox(
+        data,
+        lat='latitude',
+        lon='longitude',
+        color='temperature',
+        size_max=15,
+        zoom=3,
+        color_continuous_scale='Blues',
+        hover_data={
+            'temperature': ':.1f',
+            'salinity': ':.1f',
+            'depth': ':.0f',
+            'platform_id': True,
+            'latitude': ':.2f',
+            'longitude': ':.2f'
+        },
+        hover_name='platform_id',
+        title='Ocean Temperature Distribution'
     )
     
-    # Add temperature points
-    temp_min = data['temperature'].min()
-    temp_max = data['temperature'].max()
+    fig.update_layout(
+        mapbox_style="open-street-map",
+        height=600,  # Increased from 400 to 600
+        margin={"r":10,"t":60,"l":10,"b":10},  # Better margins
+        font=dict(family="Inter, sans-serif"),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        title_font_size=18,
+        title_x=0.5  # Center the title
+    )
     
-    for idx, row in data.iterrows():
-        # Normalize temperature to 0-1 range for color scaling
-        temp_normalized = (row['temperature'] - temp_min) / (temp_max - temp_min) if temp_max != temp_min else 0.5
-        temp_normalized = max(0, min(1, temp_normalized))  # Ensure it's between 0 and 1
-        
-        # Get color from colorscale
-        color = px.colors.sample_colorscale('Blues', [temp_normalized])[0]
-        
-        folium.CircleMarker(
-            location=[row['latitude'], row['longitude']],
-            radius=8,
-            popup=f"""
-            <div style='font-family: Inter; padding: 10px;'>
-                <b>Ocean Data Point</b><br>
-                🌡️ Temperature: {row['temperature']:.1f}°C<br>
-                🧂 Salinity: {row['salinity']:.1f} PSU<br>
-                📏 Depth: {row['depth']:.0f}m<br>
-                📍 Platform: {row['platform_id']}
-            </div>
-            """,
-            color='white',
-            weight=2,
-            fillColor=color,
-            fillOpacity=0.8
-        ).add_to(m)
+    # Update hover template
+    fig.update_traces(
+        hovertemplate="<b>%{hovertext}</b><br>" +
+                      "🌡️ Temperature: %{customdata[0]:.1f}°C<br>" +
+                      "🧂 Salinity: %{customdata[1]:.1f} PSU<br>" +
+                      "📏 Depth: %{customdata[2]:.0f}m<br>" +
+                      "📍 Location: %{customdata[4]:.2f}, %{customdata[5]:.2f}<br>" +
+                      "<extra></extra>"
+    )
     
-    return m
+    return fig
 
 def create_depth_profile_chart(data):
     """Create enhanced depth profile visualization"""
@@ -572,7 +643,8 @@ def create_depth_profile_chart(data):
         font=dict(family="Inter", size=12, color='#e2e8f0'),
         plot_bgcolor='rgba(26, 32, 44, 0.8)',
         paper_bgcolor='rgba(0,0,0,0)',
-        height=500,
+        height=500,  # Keep good height
+        margin=dict(l=60, r=60, t=80, b=60),  # Better margins for readability
         showlegend=True,
         legend=dict(
             orientation="h",
@@ -754,7 +826,8 @@ def create_time_series_chart(data):
         font=dict(family="Inter", size=12, color='#e2e8f0'),
         plot_bgcolor='rgba(26, 32, 44, 0.8)',
         paper_bgcolor='rgba(0,0,0,0)',
-        height=500,
+        height=550,  # Increased from 500 to 550
+        margin=dict(l=60, r=60, t=80, b=60),  # Better margins
         hovermode='x unified'
     )
     
@@ -919,11 +992,22 @@ def main():
                     
                     # Custom styled recent query button
                     st.markdown(f"""
-                    <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
-                                padding: 0.75rem; border-radius: 10px; border: 1px solid #4a5568; 
-                                margin-bottom: 0.5rem; cursor: pointer; transition: all 0.3s ease;"
-                         onmouseover="this.style.borderColor='#4299e1'; this.style.transform='translateY(-1px)'"
-                         onmouseout="this.style.borderColor='#4a5568'; this.style.transform='translateY(0)'">
+                    <style>
+                    .query-card-{i} {{
+                        background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%);
+                        padding: 0.75rem;
+                        border-radius: 10px;
+                        border: 1px solid #4a5568;
+                        margin-bottom: 0.5rem;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    }}
+                    .query-card-{i}:hover {{
+                        border-color: #4299e1;
+                        transform: translateY(-1px);
+                    }}
+                    </style>
+                    <div class="query-card-{i}">
                         <div style="color: #4299e1; font-size: 0.8rem; margin-bottom: 0.25rem;">Query {i+1}</div>
                         <div style="color: #e2e8f0; font-size: 0.75rem; line-height: 1.2;">{preview}</div>
                     </div>
@@ -1008,11 +1092,23 @@ def show_chat_page():
         with col1:
             # Custom styled suggestion buttons
             st.markdown("""
-            <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
-                        padding: 1.5rem; border-radius: 15px; border: 1px solid #4a5568; 
-                        margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;"
-                 onmouseover="this.style.borderColor='#4299e1'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(66,153,225,0.3)'"
-                 onmouseout="this.style.borderColor='#4a5568'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+            <style>
+            .suggestion-card-temp {
+                background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%);
+                padding: 1.5rem;
+                border-radius: 15px;
+                border: 1px solid #4a5568;
+                margin-bottom: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .suggestion-card-temp:hover {
+                border-color: #4299e1;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(66,153,225,0.3);
+            }
+            </style>
+            <div class="suggestion-card-temp">
                 <div style="color: #4299e1; font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">🌡️</div>
                 <div style="color: #e2e8f0; font-weight: bold; text-align: center; margin-bottom: 0.5rem;">Temperature Data</div>
                 <div style="color: #a0aec0; font-size: 0.9rem; text-align: center; line-height: 1.4;">
@@ -1025,11 +1121,23 @@ def show_chat_page():
                 process_chat_query("Show temperature trends in the Pacific")
             
             st.markdown("""
-            <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
-                        padding: 1.5rem; border-radius: 15px; border: 1px solid #4a5568; 
-                        margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;"
-                 onmouseover="this.style.borderColor='#48bb78'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(72,187,120,0.3)'"
-                 onmouseout="this.style.borderColor='#4a5568'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+            <style>
+            .suggestion-card-maps {
+                background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%);
+                padding: 1.5rem;
+                border-radius: 15px;
+                border: 1px solid #4a5568;
+                margin-bottom: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .suggestion-card-maps:hover {
+                border-color: #48bb78;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(72,187,120,0.3);
+            }
+            </style>
+            <div class="suggestion-card-maps">
                 <div style="color: #48bb78; font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">🗺️</div>
                 <div style="color: #e2e8f0; font-weight: bold; text-align: center; margin-bottom: 0.5rem;">Ocean Maps</div>
                 <div style="color: #a0aec0; font-size: 0.9rem; text-align: center; line-height: 1.4;">
@@ -1043,11 +1151,23 @@ def show_chat_page():
         
         with col2:
             st.markdown("""
-            <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
-                        padding: 1.5rem; border-radius: 15px; border: 1px solid #4a5568; 
-                        margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;"
-                 onmouseover="this.style.borderColor='#ed8936'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(237,137,54,0.3)'"
-                 onmouseout="this.style.borderColor='#4a5568'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+            <style>
+            .suggestion-card-salinity {
+                background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%);
+                padding: 1.5rem;
+                border-radius: 15px;
+                border: 1px solid #4a5568;
+                margin-bottom: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .suggestion-card-salinity:hover {
+                border-color: #ed8936;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(237,137,54,0.3);
+            }
+            </style>
+            <div class="suggestion-card-salinity">
                 <div style="color: #ed8936; font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">🧂</div>
                 <div style="color: #e2e8f0; font-weight: bold; text-align: center; margin-bottom: 0.5rem;">Salinity Patterns</div>
                 <div style="color: #a0aec0; font-size: 0.9rem; text-align: center; line-height: 1.4;">
@@ -1060,11 +1180,23 @@ def show_chat_page():
                 process_chat_query("What's the salinity near the equator?")
                 
             st.markdown("""
-            <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
-                        padding: 1.5rem; border-radius: 15px; border: 1px solid #4a5568; 
-                        margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;"
-                 onmouseover="this.style.borderColor='#9f7aea'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(159,122,234,0.3)'"
-                 onmouseout="this.style.borderColor='#4a5568'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+            <style>
+            .suggestion-card-analysis {
+                background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%);
+                padding: 1.5rem;
+                border-radius: 15px;
+                border: 1px solid #4a5568;
+                margin-bottom: 1rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .suggestion-card-analysis:hover {
+                border-color: #9f7aea;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(159,122,234,0.3);
+            }
+            </style>
+            <div class="suggestion-card-analysis">
                 <div style="color: #9f7aea; font-size: 2rem; text-align: center; margin-bottom: 0.5rem;">📊</div>
                 <div style="color: #e2e8f0; font-weight: bold; text-align: center; margin-bottom: 0.5rem;">Data Analysis</div>
                 <div style="color: #a0aec0; font-size: 0.9rem; text-align: center; line-height: 1.4;">
@@ -1294,14 +1426,6 @@ def show_maps_page():
             }
             
             map_center = region_centers.get(region, [20, 0])
-            zoom_level = 2 if region == "Global" else 3
-            
-            # Create map with stable key
-            m = folium.Map(
-                location=map_center, 
-                zoom_start=zoom_level,
-                tiles='OpenStreetMap'
-            )
             
             # Add region-specific sample data points
             if region == "Global":
@@ -1337,47 +1461,59 @@ def show_maps_page():
             
             # Color mapping for different data types
             color_maps = {
-                "Temperature": {"color": "red", "unit": "°C"},
-                "Salinity": {"color": "blue", "unit": "PSU"},
-                "Depth": {"color": "green", "unit": "m"},
-                "Current": {"color": "purple", "unit": "m/s"}
+                "Temperature": {"color": "Blues", "unit": "°C"},
+                "Salinity": {"color": "Viridis", "unit": "PSU"}, 
+                "Depth": {"color": "Greens", "unit": "m"},
+                "Current": {"color": "Purples", "unit": "m/s"}
             }
             
-            color_info = color_maps.get(data_type, {"color": "blue", "unit": ""})
+            color_info = color_maps.get(data_type, {"color": "Blues", "unit": ""})
             
-            # Add data points to map
-            for lat, lon, name, value in sample_locations:
-                # Adjust value based on data type
+            # Prepare data for Plotly map
+            lats, lons, names, values = zip(*sample_locations)
+            
+            # Adjust values based on data type
+            display_values = []
+            for value in values:
                 if data_type == "Salinity":
-                    display_value = value + 16  # Typical salinity range
+                    display_values.append(value + 16)  # Typical salinity range
                 elif data_type == "Depth":
-                    display_value = np.random.uniform(100, 5000)
+                    display_values.append(np.random.uniform(100, 5000))
                 elif data_type == "Current":
-                    display_value = np.random.uniform(0.1, 2.5)
+                    display_values.append(np.random.uniform(0.1, 2.5))
                 else:
-                    display_value = value
-                
-                popup_text = f"""
-                <b>{name}</b><br>
-                {data_type}: {display_value:.1f} {color_info['unit']}<br>
-                Time: {time_range}<br>
-                Region: {region}
-                """
-                
-                folium.CircleMarker(
-                    [lat, lon],
-                    radius=8,
-                    popup=folium.Popup(popup_text, max_width=200),
-                    color=color_info['color'],
-                    fill=True,
-                    fillColor=color_info['color'],
-                    fillOpacity=0.6,
-                    opacity=0.8,
-                    weight=2
-                ).add_to(m)
+                    display_values.append(value)
+            
+            # Create Plotly scatter mapbox
+            fig = go.Figure(go.Scattermapbox(
+                lat=lats,
+                lon=lons,
+                mode='markers',
+                marker=dict(
+                    size=12,
+                    color=display_values,
+                    colorscale=color_info['color'],
+                    showscale=True,
+                    colorbar=dict(title=f"{data_type} ({color_info['unit']})")
+                ),
+                text=[f"{name}<br>{data_type}: {val:.1f} {color_info['unit']}<br>Time: {time_range}<br>Region: {region}" 
+                      for name, val in zip(names, display_values)],
+                hovertemplate='%{text}<extra></extra>'
+            ))
+            
+            fig.update_layout(
+                mapbox=dict(
+                    style="open-street-map",
+                    center=dict(lat=map_center[0], lon=map_center[1]),
+                    zoom=2 if region == "Global" else 3
+                ),
+                height=500,
+                margin={"r":0,"t":0,"l":0,"b":0},
+                showlegend=False
+            )
             
             # Store the map in session state
-            st.session_state.map_data = m
+            st.session_state.map_data = fig
     
     # Display the map with a unique key to prevent re-rendering
     st.markdown(f"""
@@ -1399,21 +1535,14 @@ def show_maps_page():
             st.error("Map data not available. Please refresh the page.")
             return
             
-        map_data = st_folium(
+        # Display map using Plotly instead of folium
+        st.plotly_chart(
             st.session_state.map_data, 
-            width=700, 
-            height=500,
-            key="ocean_map",  # Stable key prevents re-rendering
-            returned_objects=["last_object_clicked"],
-            feature_group_to_add=None
+            use_container_width=True,
+            key="ocean_map"  # Stable key prevents re-rendering
         )
         
-        # Store clicked data in session state to prevent loss
-        if (map_data and 
-            'last_object_clicked' in map_data and 
-            map_data['last_object_clicked'] and
-            map_data['last_object_clicked'] != {}):
-            st.session_state.last_clicked = map_data['last_object_clicked']
+        # Note: Plotly charts have built-in interactivity
         
         # Display clicked location info from session state
         if (hasattr(st.session_state, 'last_clicked') and 
@@ -1642,28 +1771,34 @@ def show_settings_page():
                         st.markdown("### 🌍 Geographic Distribution")
                         map_chart = create_temperature_map(chat['data'])
                         if map_chart:
-                            st_folium(map_chart, width=700, height=500, key=f"map_{i}")
+                            st.plotly_chart(map_chart, use_container_width=True, key=f"map_{i}")
                     
                     with tab2:
-                        col1, col2 = st.columns(2)
+                        # Full width section for Enhanced Depth Profile
+                        st.markdown("### 📏 Enhanced Depth Profile")
+                        st.markdown("*Vertical ocean temperature and salinity analysis*")
+                        depth_chart = create_depth_profile_chart(chat['data'])
+                        if depth_chart:
+                            st.plotly_chart(depth_chart, use_container_width=True, key=f"depth_{i}")
                         
-                        with col1:
-                            st.markdown("### 📏 Enhanced Depth Profile")
-                            depth_chart = create_depth_profile_chart(chat['data'])
-                            if depth_chart:
-                                st.plotly_chart(depth_chart, width="stretch", key=f"depth_{i}")
+                        # Add spacing between charts
+                        st.markdown("---")
                         
-                        with col2:
-                            st.markdown("### ⏰ Multi-Parameter Time Series")
-                            time_chart = create_time_series_chart(chat['data'])
-                            if time_chart:
-                                st.plotly_chart(time_chart, width="stretch", key=f"time_{i}")
+                        # Full width section for Time Series
+                        st.markdown("### ⏰ Multi-Parameter Time Series")
+                        st.markdown("*Ocean parameter trends over time*")
+                        time_chart = create_time_series_chart(chat['data'])
+                        if time_chart:
+                            st.plotly_chart(time_chart, use_container_width=True, key=f"time_{i}")
                     
                     with tab3:
                         st.markdown("### 📊 Comprehensive Statistical Analysis")
+                        st.markdown("*Distribution patterns and geographic coverage*")
                         stats_chart = create_advanced_statistics_chart(chat['data'])
                         if stats_chart:
-                            st.plotly_chart(stats_chart, width="stretch", key=f"stats_{i}")
+                            st.plotly_chart(stats_chart, use_container_width=True, key=f"stats_{i}")
+                        else:
+                            st.info("📋 Statistical analysis requires sufficient data points for meaningful insights.")
                     
                     with tab4:
                         st.markdown("### 📊 Data Sample")
@@ -1688,7 +1823,7 @@ def show_settings_page():
                 st.markdown("<hr style='margin: 2rem 0; border: none; height: 1px; background: #e2e8f0;'>", unsafe_allow_html=True)
 
 def process_chat_query(user_input):
-    """Process user chat query with visualizations"""
+    """Process user chat query with visualizations and improved layout"""
     with st.spinner("🔍 Searching ocean data..."):
         # Query the API
         data = query_ocean_api(user_input)
@@ -1706,62 +1841,77 @@ def process_chat_query(user_input):
             - Data from {data['platform_id'].nunique()} different platforms
             """
             
-            # Generate and display visualizations
+            # Display the textual part of the response
             st.write(response)
-            st.markdown("---")
-            st.markdown("### 📊 Data Visualizations")
             
-            # Create visualizations in columns
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("#### 🌡️ Temperature vs Depth Profile")
+            # Use st.container() for logical grouping and a clean layout
+            with st.container():
+                st.markdown("---")
+                st.markdown("### 📊 Data Visualizations")
+                
+                # --- Temperature vs Depth Profile ---
+                st.markdown("### 🌡️ Temperature vs Depth Profile")
+                st.markdown("*Vertical distribution of ocean temperature and salinity*")
                 temp_depth_fig = create_depth_profile_chart(data)
                 if temp_depth_fig:
-                    st.plotly_chart(temp_depth_fig, width="stretch")
+                    st.plotly_chart(temp_depth_fig, use_container_width=True)
                 else:
-                    st.info("Temperature depth profile not available for this dataset")
-            
-            with col2:
-                st.markdown("#### 📈 Advanced Statistics")
+                    st.info("Temperature depth profile not available for this dataset.")
+
+            # --- Advanced Statistical Analysis ---
+            with st.container():
+                st.markdown("---")
+                st.markdown("### 📈 Advanced Statistical Analysis")
+                st.markdown("*Distribution patterns and data overview*")
                 stats_fig = create_advanced_statistics_chart(data)
                 if stats_fig:
-                    st.plotly_chart(stats_fig, width="stretch")
+                    st.plotly_chart(stats_fig, use_container_width=True)
                 else:
-                    st.info("Statistical analysis not available for this dataset")
-            
-            # Map visualization if coordinates are available
+                    st.info("Statistical analysis not available for this dataset.")
+
+            # --- Geographic Distribution ---
             if 'latitude' in data.columns and 'longitude' in data.columns:
-                st.markdown("#### 🗺️ Spatial Distribution")
-                try:
-                    # Create a simple map
-                    map_center = [data['latitude'].mean(), data['longitude'].mean()]
-                    m = folium.Map(location=map_center, zoom_start=5)
+                with st.container():
+                    st.markdown("---")
+                    st.markdown("### 🗺️ Geographic Distribution")
+                    st.markdown("*Spatial distribution of ocean measurement points*")
                     
-                    # Add sample of data points (limit to 50 for performance)
-                    sample_data = data.sample(min(50, len(data)))
-                    
-                    for _, row in sample_data.iterrows():
-                        folium.CircleMarker(
-                            [row['latitude'], row['longitude']],
-                            radius=5,
-                            popup=f"Temp: {row['temperature']:.1f}°C<br>Salinity: {row['salinity']:.1f}",
-                            color='blue',
-                            fill=True,
-                            opacity=0.7
-                        ).add_to(m)
-                    
-                    st_folium(m, width=700, height=400, key=f"map_{len(st.session_state.messages)}")
-                    
-                except Exception as e:
-                    st.info(f"Map visualization not available: {str(e)}")
+                    try:
+                        sample_data = data.sample(min(50, len(data)))
+                        fig = px.scatter_mapbox(
+                            sample_data,
+                            lat='latitude',
+                            lon='longitude',
+                            color='temperature',
+                            size_max=15,
+                            zoom=3,
+                            color_continuous_scale='Blues',
+                            hover_data={
+                                'temperature': ':.1f',
+                                'salinity': ':.1f'
+                            },
+                            title='Ocean Data Distribution'
+                        )
+                        fig.update_layout(
+                            mapbox_style="open-street-map",
+                            height=500,
+                            margin={"r": 10, "t": 60, "l": 10, "b": 10},
+                            title_font_size=16,
+                            title_x=0.5
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                    except Exception as e:
+                        st.info(f"Map visualization not available: {str(e)}")
             
-            # Data table
-            st.markdown("#### 📋 Sample Data")
-            st.dataframe(data.head(10), width="stretch")
+            # --- Raw Data Sample ---
+            with st.container():
+                st.markdown("---")
+                st.markdown("### 📋 Raw Data Sample")
+                st.markdown("*First 10 records from the dataset*")
+                st.dataframe(data.head(10), use_container_width=True)
             
             return "Visualizations generated successfully!"
-            
+        
         else:
             response = "❌ Sorry, I couldn't find any ocean data matching your query. Please try rephrasing your question or check different parameters."
             st.write(response)
@@ -1771,22 +1921,23 @@ def process_chat_query(user_input):
             st.markdown("### 📊 Demo Visualizations (Sample Data)")
             st.info("🎯 Since no data was found, here are sample visualizations to show system capabilities:")
             
-            # Generate sample data
             sample_data = generate_sample_ocean_data()
             
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("#### 🌡️ Sample Temperature Profile")
+            with st.container():
+                st.markdown("---")
+                st.markdown("### 🌡️ Sample Temperature Profile")
+                st.markdown("*Vertical distribution of sample ocean temperature data*")
                 temp_fig = create_depth_profile_chart(sample_data)
                 if temp_fig:
-                    st.plotly_chart(temp_fig, width="stretch")
+                    st.plotly_chart(temp_fig, use_container_width=True)
             
-            with col2:
-                st.markdown("#### 📈 Sample Statistics")
+            with st.container():
+                st.markdown("---")
+                st.markdown("### 📈 Sample Statistical Analysis")
+                st.markdown("*Distribution patterns from sample ocean data*")
                 stats_fig = create_advanced_statistics_chart(sample_data)
                 if stats_fig:
-                    st.plotly_chart(stats_fig, width="stretch")
+                    st.plotly_chart(stats_fig, use_container_width=True)
             
             return response
 
@@ -1875,7 +2026,7 @@ def show_dashboard():
         
         map_chart = create_temperature_map(data.sample(100))
         if map_chart:
-            st_folium(map_chart, width=500, height=450, key="dashboard_map")
+            st.plotly_chart(map_chart, use_container_width=True, key="dashboard_map")
     
     with col2:
         st.markdown("""
@@ -1887,7 +2038,7 @@ def show_dashboard():
         
         depth_chart = create_depth_profile_chart(data.sample(200))
         if depth_chart:
-            st.plotly_chart(depth_chart, width="stretch", key="dashboard_depth")
+            st.plotly_chart(depth_chart, use_container_width=True, key="dashboard_depth")
     
     # Additional insights
     st.markdown("""
@@ -1915,7 +2066,7 @@ def show_dashboard():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(temp_fig, width="stretch", key="temp_dist")
+        st.plotly_chart(temp_fig, use_container_width=True, key="temp_dist")
     
     with col2:
         st.markdown("##### 🧂 Salinity Distribution")
@@ -1933,7 +2084,7 @@ def show_dashboard():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(sal_fig, width="stretch", key="sal_dist")
+        st.plotly_chart(sal_fig, use_container_width=True, key="sal_dist")
     
     with col3:
         st.markdown("##### 📏 Depth Distribution")
@@ -1951,7 +2102,7 @@ def show_dashboard():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(depth_fig, width="stretch", key="depth_dist")
+        st.plotly_chart(depth_fig, use_container_width=True, key="depth_dist")
 
 def show_data_explorer():
     """Display data exploration interface"""
@@ -1964,41 +2115,41 @@ def show_data_explorer():
     
     # Enhanced filters with better layout
     with st.expander("🎛️ Advanced Data Filters", expanded=True):
-        col1, col2 = st.columns(2)
+        # Temperature Section
+        st.markdown("### 🌡️ Temperature Range")
+        temp_range = st.slider(
+            "Select temperature range (°C)",
+            -5.0, 35.0, (-2.0, 30.0),
+            step=0.5,
+            help="Filter data by ocean temperature"
+        )
         
-        with col1:
-            st.markdown("**🌡️ Temperature Range**")
-            temp_range = st.slider(
-                "Select temperature range (°C)",
-                -5.0, 35.0, (-2.0, 30.0),
-                step=0.5,
-                help="Filter data by ocean temperature"
-            )
-            
-            st.markdown("**📏 Depth Range**")
-            depth_range = st.slider(
-                "Select depth range (meters)",
-                0, 5000, (0, 2000),
-                step=50,
-                help="Filter data by measurement depth"
-            )
+        # Depth Section  
+        st.markdown("### 📏 Depth Range")
+        depth_range = st.slider(
+            "Select depth range (meters)",
+            0, 5000, (0, 2000),
+            step=50,
+            help="Filter data by measurement depth"
+        )
         
-        with col2:
-            st.markdown("**🛰️ Platform Selection**")
-            platform_filter = st.multiselect(
-                "Choose platforms",
-                ['ARGO_001', 'ARGO_002', 'ARGO_003', 'BUOY_001', 'SHIP_001'],
-                default=['ARGO_001', 'ARGO_002'],
-                help="Select specific ocean monitoring platforms"
-            )
-            
-            st.markdown("**🧂 Salinity Range**")
-            salinity_range = st.slider(
-                "Select salinity range (PSU)",
-                30.0, 40.0, (32.0, 38.0),
-                step=0.1,
-                help="Filter data by ocean salinity"
-            )
+        # Platform Section
+        st.markdown("### 🛰️ Platform Selection")
+        platform_filter = st.multiselect(
+            "Choose platforms",
+            ['ARGO_001', 'ARGO_002', 'ARGO_003', 'BUOY_001', 'SHIP_001'],
+            default=['ARGO_001', 'ARGO_002'],
+            help="Select specific ocean monitoring platforms"
+        )
+        
+        # Salinity Section
+        st.markdown("### 🧂 Salinity Range")
+        salinity_range = st.slider(
+            "Select salinity range (PSU)",
+            30.0, 40.0, (32.0, 38.0),
+            step=0.1,
+            help="Filter data by ocean salinity"
+        )
     
     # Load and filter data
     data = load_sample_data()
@@ -2015,16 +2166,14 @@ def show_data_explorer():
     ]
     
     # Results summary
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("📊 Filtered Results", f"{len(filtered_data):,}")
-    with col2:
-        st.metric("📈 Total Available", f"{len(data):,}")
-    with col3:
-        st.metric("🎯 Filter Efficiency", f"{len(filtered_data)/len(data)*100:.1f}%")
-    with col4:
-        if len(filtered_data) > 0:
-            st.metric("🌡️ Avg Temp", f"{filtered_data['temperature'].mean():.1f}°C")
+    st.markdown("### 📊 Filter Results Summary")
+    
+    # Create metrics in a more readable layout
+    st.metric("📊 Filtered Results", f"{len(filtered_data):,}")
+    st.metric("📈 Total Available", f"{len(data):,}")
+    st.metric("🎯 Filter Efficiency", f"{len(filtered_data)/len(data)*100:.1f}%")
+    if len(filtered_data) > 0:
+        st.metric("🌡️ Average Temperature", f"{filtered_data['temperature'].mean():.1f}°C")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -2073,62 +2222,61 @@ def show_data_explorer():
                 sample_size = min(200, len(filtered_data))
                 map_chart = create_temperature_map(filtered_data.sample(sample_size))
                 if map_chart:
-                    st_folium(map_chart, width=700, height=500, key="explorer_map")
+                    st.plotly_chart(map_chart, use_container_width=True, key="explorer_map")
         
         with tab3:
             st.markdown("### 📈 Statistical Analysis")
             
-            col1, col2 = st.columns(2)
+            # Temperature Analysis Section
+            st.markdown("---")
+            st.markdown("#### 🌡️ Temperature Analysis")
+            temp_stats = filtered_data['temperature'].describe()
+            st.write(f"**Mean:** {temp_stats['mean']:.2f}°C")
+            st.write(f"**Std Dev:** {temp_stats['std']:.2f}°C")
+            st.write(f"**Range:** {temp_stats['min']:.2f}°C to {temp_stats['max']:.2f}°C")
             
-            with col1:
-                # Temperature statistics
-                st.markdown("#### 🌡️ Temperature Analysis")
-                temp_stats = filtered_data['temperature'].describe()
-                st.write(f"**Mean:** {temp_stats['mean']:.2f}°C")
-                st.write(f"**Std Dev:** {temp_stats['std']:.2f}°C")
-                st.write(f"**Range:** {temp_stats['min']:.2f}°C to {temp_stats['max']:.2f}°C")
-                
-                # Temperature histogram
-                temp_hist = px.histogram(
-                    filtered_data.sample(min(1000, len(filtered_data))),
-                    x='temperature',
-                    title="Temperature Distribution",
-                    color_discrete_sequence=['#006994'],
-                    nbins=25
-                )
-                temp_hist.update_layout(
-                    height=300,
-                    font=dict(family="Inter", size=12),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(temp_hist, width="stretch", key="temp_hist_explorer")
+            # Temperature histogram
+            temp_hist = px.histogram(
+                filtered_data.sample(min(1000, len(filtered_data))),
+                x='temperature',
+                title="Temperature Distribution",
+                color_discrete_sequence=['#006994'],
+                nbins=25
+            )
+            temp_hist.update_layout(
+                height=400,
+                font=dict(family="Inter", size=12),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(temp_hist, use_container_width=True, key="temp_hist_explorer")
             
-            with col2:
-                # Salinity statistics
-                st.markdown("#### 🧂 Salinity Analysis")
-                sal_stats = filtered_data['salinity'].describe()
-                st.write(f"**Mean:** {sal_stats['mean']:.2f} PSU")
-                st.write(f"**Std Dev:** {sal_stats['std']:.2f} PSU")
-                st.write(f"**Range:** {sal_stats['min']:.2f} to {sal_stats['max']:.2f} PSU")
-                
-                # Salinity histogram
-                sal_hist = px.histogram(
-                    filtered_data.sample(min(1000, len(filtered_data))),
-                    x='salinity',
-                    title="Salinity Distribution",
-                    color_discrete_sequence=['#0891b2'],
-                    nbins=25
-                )
-                sal_hist.update_layout(
-                    height=300,
-                    font=dict(family="Inter", size=12),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)'
-                )
-                st.plotly_chart(sal_hist, width="stretch", key="sal_hist_explorer")
+            # Salinity Analysis Section
+            st.markdown("---")
+            st.markdown("#### 🧂 Salinity Analysis")
+            sal_stats = filtered_data['salinity'].describe()
+            st.write(f"**Mean:** {sal_stats['mean']:.2f} PSU")
+            st.write(f"**Std Dev:** {sal_stats['std']:.2f} PSU")
+            st.write(f"**Range:** {sal_stats['min']:.2f} to {sal_stats['max']:.2f} PSU")
+            
+            # Salinity histogram
+            sal_hist = px.histogram(
+                filtered_data.sample(min(1000, len(filtered_data))),
+                x='salinity',
+                title="Salinity Distribution",
+                color_discrete_sequence=['#0891b2'],
+                nbins=25
+            )
+            sal_hist.update_layout(
+                height=400,
+                font=dict(family="Inter", size=12),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(sal_hist, use_container_width=True, key="sal_hist_explorer")
             
             # Correlation analysis
+            st.markdown("---")
             st.markdown("#### 🔗 Data Correlations")
             correlation_data = filtered_data[['temperature', 'salinity', 'depth']].corr()
             fig_corr = px.imshow(
@@ -2139,35 +2287,34 @@ def show_data_explorer():
                 title="Parameter Correlation Matrix"
             )
             fig_corr.update_layout(
-                height=400,
+                height=500,
                 font=dict(family="Inter", size=12)
             )
-            st.plotly_chart(fig_corr, width="stretch", key="corr_explorer")
+            st.plotly_chart(fig_corr, use_container_width=True, key="corr_explorer")
         
         with tab4:
             st.markdown("### 📁 Export Filtered Data")
             
             st.markdown("**Available Export Formats:**")
             
-            col1, col2, col3 = st.columns(3)
+            # CSV Download Section
+            st.markdown("### 📊 CSV Export")
+            if st.button("📊 Download CSV", key="csv_download"):
+                csv = filtered_data.to_csv(index=False)
+                st.download_button(
+                    label="💾 Download CSV File",
+                    data=csv,
+                    file_name=f"ocean_data_filtered_{len(filtered_data)}_points.csv",
+                    mime="text/csv"
+                )
             
-            with col1:
-                if st.button("📊 Download CSV", width="stretch"):
-                    csv = filtered_data.to_csv(index=False)
-                    st.download_button(
-                        label="💾 Download CSV File",
-                        data=csv,
-                        file_name=f"ocean_data_filtered_{len(filtered_data)}_points.csv",
-                        mime="text/csv"
-                    )
+            # Additional Export Options
+            st.markdown("### 📋 Other Export Options")
+            if st.button("📋 Copy to Clipboard", key="clipboard_copy"):
+                st.info("📋 Data copied! (Feature simulated)")
             
-            with col2:
-                if st.button("📋 Copy to Clipboard", width="stretch"):
-                    st.info("📋 Data copied! (Feature simulated)")
-            
-            with col3:
-                if st.button("📧 Email Report", width="stretch"):
-                    st.info("📧 Report sent! (Feature simulated)")
+            if st.button("📧 Email Report", key="email_report"):
+                st.info("📧 Report sent! (Feature simulated)")
     else:
         st.warning("""
         🚫 **No data matches your current filters**

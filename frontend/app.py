@@ -1391,6 +1391,12 @@ def show_maps_page():
                              key="map_region")
     with col4:
         refresh_map = st.button("🔄 Refresh", help="Update map with current settings")
+        
+    # Add clear map cache button for troubleshooting
+    if st.button("🗑️ Clear Map Cache", help="Reset map if experiencing issues"):
+        st.session_state.map_data = None
+        st.session_state.last_clicked = None
+        st.rerun()
     
     # Check if settings changed or refresh button clicked
     settings_changed = (
@@ -1504,14 +1510,6 @@ def show_maps_page():
                     weight=2
                 ).add_to(m)
             
-            # Add a marker cluster for better performance with many points
-            try:
-                from folium.plugins import MarkerCluster
-                marker_cluster = MarkerCluster().add_to(m)
-            except ImportError:
-                # MarkerCluster not available, continue without it
-                pass
-            
             # Store the map in session state
             st.session_state.map_data = m
     
@@ -1530,6 +1528,11 @@ def show_maps_page():
     
     # Display the stable map
     try:
+        # Ensure map data exists before display
+        if st.session_state.map_data is None:
+            st.error("Map data not available. Please refresh the page.")
+            return
+            
         map_data = st_folium(
             st.session_state.map_data, 
             width=700, 
@@ -1537,22 +1540,35 @@ def show_maps_page():
             key="ocean_map",  # Stable key prevents re-rendering
             returned_objects=["last_object_clicked"],
             feature_group_to_add=None,
-            use_container_width=True
+            use_container_width=False  # Fixed width for stability
         )
         
         # Store clicked data in session state to prevent loss
-        if map_data and 'last_object_clicked' in map_data and map_data['last_object_clicked']:
+        if (map_data and 
+            'last_object_clicked' in map_data and 
+            map_data['last_object_clicked'] and
+            map_data['last_object_clicked'] != {}):
             st.session_state.last_clicked = map_data['last_object_clicked']
         
         # Display clicked location info from session state
-        if hasattr(st.session_state, 'last_clicked') and st.session_state.last_clicked:
+        if (hasattr(st.session_state, 'last_clicked') and 
+            st.session_state.last_clicked and
+            st.session_state.last_clicked != {}):
             clicked_data = st.session_state.last_clicked
             with st.container():
-                st.info(f"📍 Last clicked location: Lat {clicked_data['lat']:.2f}, Lon {clicked_data['lng']:.2f}")
+                st.info(f"📍 Last clicked location: Lat {clicked_data.get('lat', 0):.2f}, Lon {clicked_data.get('lng', 0):.2f}")
     
     except Exception as e:
         st.error(f"Map display error: {str(e)}")
-        st.info("🔄 Please refresh the page or try again")
+        st.info("🔄 Please refresh the page or try clicking the refresh button above")
+        
+        # Provide fallback information
+        st.markdown("""
+        **Map Information:**
+        - Interactive ocean data visualization
+        - Click refresh button to reload map
+        - Choose different regions and data types above
+        """)
     
     # Map statistics
     col1, col2, col3, col4 = st.columns(4)

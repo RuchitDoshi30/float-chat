@@ -1358,45 +1358,209 @@ def show_dashboard_page():
         st.bar_chart(chart_data.set_index('Ocean'))
 
 def show_maps_page():
-    """Interactive maps page"""
+    """Interactive maps page with stable rendering"""
     
     st.title("🗺️ Ocean Data Maps")
     st.subheader("Interactive visualization of global ocean data")
     st.divider()
     
+    # Initialize map session state
+    if 'map_data' not in st.session_state:
+        st.session_state.map_data = None
+    if 'map_settings' not in st.session_state:
+        st.session_state.map_settings = {
+            'data_type': 'Temperature',
+            'time_range': 'Last 24h',
+            'region': 'Global'
+        }
+    
     # Map controls
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
     
     with col1:
-        data_type = st.selectbox("Data Type", ["Temperature", "Salinity", "Depth", "Current"])
+        data_type = st.selectbox("Data Type", ["Temperature", "Salinity", "Depth", "Current"],
+                                index=["Temperature", "Salinity", "Depth", "Current"].index(st.session_state.map_settings['data_type']),
+                                key="map_data_type")
     with col2:
-        time_range = st.selectbox("Time Range", ["Last 24h", "Last Week", "Last Month", "Last Year"])
+        time_range = st.selectbox("Time Range", ["Last 24h", "Last Week", "Last Month", "Last Year"],
+                                 index=["Last 24h", "Last Week", "Last Month", "Last Year"].index(st.session_state.map_settings['time_range']),
+                                 key="map_time_range")
     with col3:
-        region = st.selectbox("Region", ["Global", "Pacific", "Atlantic", "Indian Ocean"])
+        region = st.selectbox("Region", ["Global", "Pacific", "Atlantic", "Indian Ocean"],
+                             index=["Global", "Pacific", "Atlantic", "Indian Ocean"].index(st.session_state.map_settings['region']),
+                             key="map_region")
+    with col4:
+        refresh_map = st.button("🔄 Refresh", help="Update map with current settings")
     
-    # Create sample map
-    map_center = [20, 0]
-    m = folium.Map(location=map_center, zoom_start=2)
+    # Check if settings changed or refresh button clicked
+    settings_changed = (
+        data_type != st.session_state.map_settings['data_type'] or
+        time_range != st.session_state.map_settings['time_range'] or
+        region != st.session_state.map_settings['region'] or
+        refresh_map
+    )
     
-    # Add sample data points
-    sample_locations = [
-        [40, -70, "Atlantic Station 1"],
-        [35, -120, "Pacific Station 2"],
-        [0, 80, "Indian Ocean Station 3"],
-        [-30, 150, "Pacific Station 4"]
-    ]
+    # Update settings if changed
+    if settings_changed:
+        st.session_state.map_settings = {
+            'data_type': data_type,
+            'time_range': time_range,
+            'region': region
+        }
+        # Clear cached map data to force regeneration
+        st.session_state.map_data = None
     
-    for lat, lon, name in sample_locations:
-        folium.CircleMarker(
-            [lat, lon],
-            radius=8,
-            popup=f"{name}<br>Temp: {np.random.uniform(15, 25):.1f}°C",
-            color='blue',
-            fill=True,
-            opacity=0.7
-        ).add_to(m)
+    # Generate map only if needed
+    if st.session_state.map_data is None or settings_changed:
+        with st.spinner(f"🗺️ Loading {data_type} data for {region}..."):
+            # Set map center based on region
+            region_centers = {
+                "Global": [20, 0],
+                "Pacific": [0, -150],
+                "Atlantic": [30, -30],
+                "Indian Ocean": [-10, 80]
+            }
+            
+            map_center = region_centers.get(region, [20, 0])
+            zoom_level = 2 if region == "Global" else 3
+            
+            # Create map with stable key
+            m = folium.Map(
+                location=map_center, 
+                zoom_start=zoom_level,
+                tiles='OpenStreetMap'
+            )
+            
+            # Add region-specific sample data points
+            if region == "Global":
+                sample_locations = [
+                    [40, -70, "Atlantic Station 1", 18.5],
+                    [35, -120, "Pacific Station 2", 16.2],
+                    [0, 80, "Indian Ocean Station 3", 24.1],
+                    [-30, 150, "Pacific Station 4", 15.8],
+                    [60, 10, "Norwegian Sea Station", 8.3],
+                    [-45, -60, "Southern Ocean Station", 4.2]
+                ]
+            elif region == "Pacific":
+                sample_locations = [
+                    [35, -120, "West Coast Station", 16.2],
+                    [20, -160, "Hawaiian Station", 22.5],
+                    [-10, -140, "Equatorial Station", 26.8],
+                    [45, 150, "North Pacific Station", 12.1]
+                ]
+            elif region == "Atlantic":
+                sample_locations = [
+                    [40, -70, "North Atlantic", 18.5],
+                    [25, -80, "Gulf Stream", 24.2],
+                    [10, -40, "Equatorial Atlantic", 27.1],
+                    [50, -30, "Labrador Sea", 6.8]
+                ]
+            else:  # Indian Ocean
+                sample_locations = [
+                    [0, 80, "Equatorial Indian", 24.1],
+                    [-20, 60, "Mauritius Region", 22.7],
+                    [-10, 100, "Java Sea", 28.3],
+                    [15, 60, "Arabian Sea", 26.5]
+                ]
+            
+            # Color mapping for different data types
+            color_maps = {
+                "Temperature": {"color": "red", "unit": "°C"},
+                "Salinity": {"color": "blue", "unit": "PSU"},
+                "Depth": {"color": "green", "unit": "m"},
+                "Current": {"color": "purple", "unit": "m/s"}
+            }
+            
+            color_info = color_maps.get(data_type, {"color": "blue", "unit": ""})
+            
+            # Add data points to map
+            for lat, lon, name, value in sample_locations:
+                # Adjust value based on data type
+                if data_type == "Salinity":
+                    display_value = value + 16  # Typical salinity range
+                elif data_type == "Depth":
+                    display_value = np.random.uniform(100, 5000)
+                elif data_type == "Current":
+                    display_value = np.random.uniform(0.1, 2.5)
+                else:
+                    display_value = value
+                
+                popup_text = f"""
+                <b>{name}</b><br>
+                {data_type}: {display_value:.1f} {color_info['unit']}<br>
+                Time: {time_range}<br>
+                Region: {region}
+                """
+                
+                folium.CircleMarker(
+                    [lat, lon],
+                    radius=8,
+                    popup=folium.Popup(popup_text, max_width=200),
+                    color=color_info['color'],
+                    fill=True,
+                    fillColor=color_info['color'],
+                    fillOpacity=0.6,
+                    opacity=0.8,
+                    weight=2
+                ).add_to(m)
+            
+            # Add a marker cluster for better performance with many points
+            try:
+                from folium.plugins import MarkerCluster
+                marker_cluster = MarkerCluster().add_to(m)
+            except ImportError:
+                # MarkerCluster not available, continue without it
+                pass
+            
+            # Store the map in session state
+            st.session_state.map_data = m
     
-    st_folium(m, width=700, height=500)
+    # Display the map with a unique key to prevent re-rendering
+    st.markdown(f"""
+    <div style="background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%); 
+                padding: 1rem; border-radius: 12px; border: 1px solid #4a5568; margin-bottom: 1rem;">
+        <div style="color: #e2e8f0; font-weight: bold; margin-bottom: 0.5rem;">
+            📊 Current View: {data_type} data for {region} ({time_range})
+        </div>
+        <div style="color: #a0aec0; font-size: 0.9rem;">
+            Click on markers for detailed information • Use refresh button to update data
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Display the stable map
+    map_data = st_folium(
+        st.session_state.map_data, 
+        width=700, 
+        height=500,
+        key="ocean_map",  # Stable key prevents re-rendering
+        returned_objects=["last_object_clicked"]
+    )
+    
+    # Display clicked location info
+    if map_data['last_object_clicked']:
+        clicked_data = map_data['last_object_clicked']
+        st.info(f"📍 Last clicked location: Lat {clicked_data['lat']:.2f}, Lon {clicked_data['lng']:.2f}")
+    
+    # Map statistics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    # Get current sample locations count based on region
+    current_locations_count = {
+        "Global": 6,
+        "Pacific": 4,
+        "Atlantic": 4,
+        "Indian Ocean": 4
+    }.get(region, 4)
+    
+    with col1:
+        st.metric("Data Points", current_locations_count, delta="Live")
+    with col2:
+        st.metric("Coverage", "95%", delta="2%")
+    with col3:
+        st.metric("Update Rate", "Real-time", delta="Active")
+    with col4:
+        st.metric("Quality", "High", delta="✓")
 
 def show_analytics_page():
     """Advanced analytics and insights"""

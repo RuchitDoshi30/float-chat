@@ -1,0 +1,102 @@
+{
+  "files_processed": 5,
+  "total_measurements": 320094,
+  "files_details": [
+    {
+      "filename": "20241201_prof.nc",
+      "measurements_stored": 42840,
+      "file_size_mb": 4.769420623779297,
+      "spatial_bounds": {
+        "lat_range": [
+          -66.03079223632812,
+          15.192
+        ],
+        "lon_range": [
+          25.268961666666666,
+          139.71127319335938
+        ]
+      },
+      "temporal_bounds": {
+        "start": null,
+        "end": null
+      }
+    },
+    {
+      "filename": "20241202_prof.nc",
+      "measurements_stored": 43074,
+      "file_size_mb": 4.394412994384766,
+      "spatial_bounds": {
+        "lat_range": [
+          -68.11348724365234,
+          23.585888333333333
+        ],
+        "lon_range": [
+          39.99467666666666,
+          134.931
+        ]
+      },
+      "temporal_bounds": {
+        "start": null,
+        "end": null
+      }
+    },
+    {
+      "filename": "20241203_prof.nc",
+      "measurements_stored": 39476,
+      "file_size_mb": 4.446144104003906,
+      "spatial_bounds": {
+        "lat_range": [
+          -64.55722045898438,
+          19.633333333333333
+        ],
+        "lon_range": [
+          31.0984,
+          142.0878
+        ]
+      },
+      "temporal_bounds": {
+        "start": null,
+        "end": null
+      }
+    },
+    {
+      "filename": "20241204_prof.nc",
+      "measurements_stored": 43521,
+      "file_size_mb": 4.723979949951172,
+      "spatial_bounds": {
+        "lat_range": [
+          -68.04754,
+          23.500938333333334
+        ],
+        "lon_range": [
+          22.836663333333334,
+          143.37
+        ]
+      },
+      "temporal_bounds": {
+        "start": null,
+        "end": null
+      }
+    },
+    {
+      "filename": "R20250909_prof_0.nc",
+      "measurements_stored": 151183,
+      "file_size_mb": 26.187408447265625,
+      "spatial_bounds": {
+        "lat_range": [
+          -70.99184,
+          78.76155666666666
+        ],
+        "lon_range": [
+          -176.2694,
+          179.6889
+        ]
+      },
+      "temporal_bounds": {
+        "start": null,
+        "end": null
+      }
+    }
+  ],
+  "errors": []
+}

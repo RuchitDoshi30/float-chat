@@ -15,13 +15,19 @@ import requests
 from datetime import datetime, timedelta
 import json
 import time
+import os
 try:
     from scipy import stats
 except ImportError:
     stats = None
 
-# Configuration
-BACKEND_URL = "http://localhost:8000"
+# Configuration - Environment-aware backend URL
+if "streamlit" in os.environ.get("HOME", "").lower() or os.environ.get("STREAMLIT_SHARING_MODE"):
+    # Running on Streamlit Cloud
+    BACKEND_URL = st.secrets.get("api", {}).get("backend_url", "http://localhost:8000")
+else:
+    # Running locally
+    BACKEND_URL = "http://localhost:8000"
 
 # Page configuration
 st.set_page_config(

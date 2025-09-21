@@ -1405,8 +1405,7 @@ def show_maps_page():
             height=500,
             key="ocean_map",  # Stable key prevents re-rendering
             returned_objects=["last_object_clicked"],
-            feature_group_to_add=None,
-            width="content"  # Fixed width for stability
+            feature_group_to_add=None
         )
         
         # Store clicked data in session state to prevent loss

@@ -801,7 +801,7 @@ def main():
             is_current = st.session_state.current_page == page_key
             button_style = "background: linear-gradient(145deg, #4299e1 0%, #3182ce 100%); color: white;" if is_current else ""
             
-            if st.button(page_name, key=f"nav_{page_key}", use_container_width=True):
+            if st.button(page_name, key=f"nav_{page_key}", width="stretch"):
                 st.session_state.current_page = page_key
                 st.rerun()
         
@@ -1021,7 +1021,7 @@ def show_chat_page():
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("🌡️ Temperature Data", key="temp_suggestion", use_container_width=True):
+            if st.button("🌡️ Temperature Data", key="temp_suggestion", width="stretch"):
                 process_chat_query("Show temperature trends in the Pacific")
             
             st.markdown("""
@@ -1038,7 +1038,7 @@ def show_chat_page():
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("🗺️ Ocean Maps", key="map_suggestion", use_container_width=True):
+            if st.button("🗺️ Ocean Maps", key="map_suggestion", width="stretch"):
                 process_chat_query("Create a map of current data")
         
         with col2:
@@ -1056,7 +1056,7 @@ def show_chat_page():
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("🧂 Salinity Patterns", key="salinity_suggestion", use_container_width=True):
+            if st.button("🧂 Salinity Patterns", key="salinity_suggestion", width="stretch"):
                 process_chat_query("What's the salinity near the equator?")
                 
             st.markdown("""
@@ -1073,7 +1073,7 @@ def show_chat_page():
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("📊 Data Analysis", key="analysis_suggestion", use_container_width=True):
+            if st.button("📊 Data Analysis", key="analysis_suggestion", width="stretch"):
                 process_chat_query("Analyze depth profiles by region")
         
     else:
@@ -1120,19 +1120,19 @@ def show_chat_page():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            if st.button("� Pacific Ocean Analysis", use_container_width=True):
+            if st.button("� Pacific Ocean Analysis", width="stretch"):
                 process_chat_query("Show me temperature and salinity data for the Pacific Ocean")
         
         with col2:
-            if st.button("🧂 Indian Ocean Salinity", use_container_width=True, key="indian_salinity"):
+            if st.button("🧂 Indian Ocean Salinity", width="stretch", key="indian_salinity"):
                 process_chat_query("Analyze salinity patterns in the Indian Ocean")
         
         with col3:
-            if st.button("🌡️ Temperature Profiles", use_container_width=True, key="temp_profiles"):
+            if st.button("🌡️ Temperature Profiles", width="stretch", key="temp_profiles"):
                 process_chat_query("Show temperature distribution with depth profiles")
         
         with col4:
-            if st.button("📈 Trend Analysis", use_container_width=True, key="trend_analysis"):
+            if st.button("📈 Trend Analysis", width="stretch", key="trend_analysis"):
                 process_chat_query("What are the recent ocean temperature trends?")
         
         # Row 2: Advanced Analysis
@@ -1140,19 +1140,19 @@ def show_chat_page():
         col5, col6, col7, col8 = st.columns(4)
         
         with col5:
-            if st.button("🌍 Global Ocean Map", use_container_width=True, key="global_map"):
+            if st.button("🌍 Global Ocean Map", width="stretch", key="global_map"):
                 process_chat_query("Create a comprehensive global ocean data map")
         
         with col6:
-            if st.button("📊 Statistical Summary", use_container_width=True, key="stats_summary"):
+            if st.button("📊 Statistical Summary", width="stretch", key="stats_summary"):
                 process_chat_query("Provide comprehensive statistical analysis of ocean data")
         
         with col7:
-            if st.button("🏝️ Arctic Waters", use_container_width=True, key="arctic_waters"):
+            if st.button("🏝️ Arctic Waters", width="stretch", key="arctic_waters"):
                 process_chat_query("Analyze Arctic Ocean conditions and ice coverage")
         
         with col8:
-            if st.button("⚡ Live Data Status", use_container_width=True, key="live_status"):
+            if st.button("⚡ Live Data Status", width="stretch", key="live_status"):
                 process_chat_query("Show me live ocean data availability and status")
         
         # Row 3: Demo Showcase
@@ -1160,15 +1160,15 @@ def show_chat_page():
         col9, col10, col11 = st.columns(3)
         
         with col9:
-            if st.button("� Complete Ocean Analysis", use_container_width=True):
+            if st.button("� Complete Ocean Analysis", width="stretch"):
                 process_chat_query("Show me a complete analysis of ocean parameters with all visualizations")
         
         with col10:
-            if st.button("🌊 Real-time Ocean Data", use_container_width=True, key="realtime_data"):
+            if st.button("🌊 Real-time Ocean Data", width="stretch", key="realtime_data"):
                 process_chat_query("Get the latest real-time ocean measurements from Argo network")
         
         with col11:
-            if st.button("🔥 System Performance", use_container_width=True, key="system_perf"):
+            if st.button("🔥 System Performance", width="stretch", key="system_perf"):
                 process_chat_query("Demonstrate system capabilities and processing speed")
 
 def show_dashboard_page():
@@ -1406,7 +1406,7 @@ def show_maps_page():
             key="ocean_map",  # Stable key prevents re-rendering
             returned_objects=["last_object_clicked"],
             feature_group_to_add=None,
-            use_container_width=False  # Fixed width for stability
+            width="content"  # Fixed width for stability
         )
         
         # Store clicked data in session state to prevent loss
@@ -1538,13 +1538,13 @@ def show_settings_page():
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 Test Connection", use_container_width=True):
+        if st.button("🔄 Test Connection", width="stretch"):
             with st.spinner("Testing connection..."):
                 time.sleep(2)
                 st.success("Connection successful!")
     
     with col2:
-        if st.button("🧹 Clear Cache", use_container_width=True):
+        if st.button("🧹 Clear Cache", width="stretch"):
             with st.spinner("Clearing cache..."):
                 time.sleep(1)
                 st.success("Cache cleared!")
@@ -1574,7 +1574,7 @@ def show_settings_page():
             )
         
         with col2:
-            send_button = st.button("🚀 Send", type="primary", use_container_width=True)
+            send_button = st.button("🚀 Send", type="primary", width="stretch")
     
     # Quick suggestions
     st.markdown("""
@@ -1585,13 +1585,13 @@ def show_settings_page():
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("🌡️ Temperature trends", use_container_width=True, key="temp_trends_btn"):
+        if st.button("🌡️ Temperature trends", width="stretch", key="temp_trends_btn"):
             process_chat_query("Show me temperature trends in the Pacific Ocean")
     with col2:
-        if st.button("🧂 Salinity data", use_container_width=True, key="salinity_data_btn"):
+        if st.button("🧂 Salinity data", width="stretch", key="salinity_data_btn"):
             process_chat_query("What's the salinity distribution in the Atlantic?")
     with col3:
-        if st.button("📏 Depth analysis", use_container_width=True, key="depth_analysis_btn"):
+        if st.button("📏 Depth analysis", width="stretch", key="depth_analysis_btn"):
             process_chat_query("Analyze depth profiles near the equator")
     
     # Process chat input
@@ -1652,19 +1652,19 @@ def show_settings_page():
                             st.markdown("### 📏 Enhanced Depth Profile")
                             depth_chart = create_depth_profile_chart(chat['data'])
                             if depth_chart:
-                                st.plotly_chart(depth_chart, use_container_width=True, key=f"depth_{i}")
+                                st.plotly_chart(depth_chart, width="stretch", key=f"depth_{i}")
                         
                         with col2:
                             st.markdown("### ⏰ Multi-Parameter Time Series")
                             time_chart = create_time_series_chart(chat['data'])
                             if time_chart:
-                                st.plotly_chart(time_chart, use_container_width=True, key=f"time_{i}")
+                                st.plotly_chart(time_chart, width="stretch", key=f"time_{i}")
                     
                     with tab3:
                         st.markdown("### 📊 Comprehensive Statistical Analysis")
                         stats_chart = create_advanced_statistics_chart(chat['data'])
                         if stats_chart:
-                            st.plotly_chart(stats_chart, use_container_width=True, key=f"stats_{i}")
+                            st.plotly_chart(stats_chart, width="stretch", key=f"stats_{i}")
                     
                     with tab4:
                         st.markdown("### 📊 Data Sample")
@@ -1682,7 +1682,7 @@ def show_settings_page():
                         
                         st.dataframe(
                             chat['data'].head(20),
-                            use_container_width=True,
+                            width="stretch",
                             hide_index=True
                         )
                 
@@ -1719,7 +1719,7 @@ def process_chat_query(user_input):
                 st.markdown("#### 🌡️ Temperature vs Depth Profile")
                 temp_depth_fig = create_depth_profile_chart(data)
                 if temp_depth_fig:
-                    st.plotly_chart(temp_depth_fig, use_container_width=True)
+                    st.plotly_chart(temp_depth_fig, width="stretch")
                 else:
                     st.info("Temperature depth profile not available for this dataset")
             
@@ -1727,7 +1727,7 @@ def process_chat_query(user_input):
                 st.markdown("#### 📈 Advanced Statistics")
                 stats_fig = create_advanced_statistics_chart(data)
                 if stats_fig:
-                    st.plotly_chart(stats_fig, use_container_width=True)
+                    st.plotly_chart(stats_fig, width="stretch")
                 else:
                     st.info("Statistical analysis not available for this dataset")
             
@@ -1759,7 +1759,7 @@ def process_chat_query(user_input):
             
             # Data table
             st.markdown("#### 📋 Sample Data")
-            st.dataframe(data.head(10), use_container_width=True)
+            st.dataframe(data.head(10), width="stretch")
             
             return "Visualizations generated successfully!"
             
@@ -1781,13 +1781,13 @@ def process_chat_query(user_input):
                 st.markdown("#### 🌡️ Sample Temperature Profile")
                 temp_fig = create_depth_profile_chart(sample_data)
                 if temp_fig:
-                    st.plotly_chart(temp_fig, use_container_width=True)
+                    st.plotly_chart(temp_fig, width="stretch")
             
             with col2:
                 st.markdown("#### 📈 Sample Statistics")
                 stats_fig = create_advanced_statistics_chart(sample_data)
                 if stats_fig:
-                    st.plotly_chart(stats_fig, use_container_width=True)
+                    st.plotly_chart(stats_fig, width="stretch")
             
             return response
 
@@ -1888,7 +1888,7 @@ def show_dashboard():
         
         depth_chart = create_depth_profile_chart(data.sample(200))
         if depth_chart:
-            st.plotly_chart(depth_chart, use_container_width=True, key="dashboard_depth")
+            st.plotly_chart(depth_chart, width="stretch", key="dashboard_depth")
     
     # Additional insights
     st.markdown("""
@@ -1916,7 +1916,7 @@ def show_dashboard():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(temp_fig, use_container_width=True, key="temp_dist")
+        st.plotly_chart(temp_fig, width="stretch", key="temp_dist")
     
     with col2:
         st.markdown("##### 🧂 Salinity Distribution")
@@ -1934,7 +1934,7 @@ def show_dashboard():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(sal_fig, use_container_width=True, key="sal_dist")
+        st.plotly_chart(sal_fig, width="stretch", key="sal_dist")
     
     with col3:
         st.markdown("##### 📏 Depth Distribution")
@@ -1952,7 +1952,7 @@ def show_dashboard():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(depth_fig, use_container_width=True, key="depth_dist")
+        st.plotly_chart(depth_fig, width="stretch", key="depth_dist")
 
 def show_data_explorer():
     """Display data exploration interface"""
@@ -2042,7 +2042,7 @@ def show_data_explorer():
             st.markdown("### 📊 Filtered Dataset")
             st.dataframe(
                 filtered_data,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 column_config={
                     "temperature": st.column_config.NumberColumn(
@@ -2103,7 +2103,7 @@ def show_data_explorer():
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)'
                 )
-                st.plotly_chart(temp_hist, use_container_width=True, key="temp_hist_explorer")
+                st.plotly_chart(temp_hist, width="stretch", key="temp_hist_explorer")
             
             with col2:
                 # Salinity statistics
@@ -2127,7 +2127,7 @@ def show_data_explorer():
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)'
                 )
-                st.plotly_chart(sal_hist, use_container_width=True, key="sal_hist_explorer")
+                st.plotly_chart(sal_hist, width="stretch", key="sal_hist_explorer")
             
             # Correlation analysis
             st.markdown("#### 🔗 Data Correlations")
@@ -2143,7 +2143,7 @@ def show_data_explorer():
                 height=400,
                 font=dict(family="Inter", size=12)
             )
-            st.plotly_chart(fig_corr, use_container_width=True, key="corr_explorer")
+            st.plotly_chart(fig_corr, width="stretch", key="corr_explorer")
         
         with tab4:
             st.markdown("### 📁 Export Filtered Data")
@@ -2153,7 +2153,7 @@ def show_data_explorer():
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                if st.button("📊 Download CSV", use_container_width=True):
+                if st.button("📊 Download CSV", width="stretch"):
                     csv = filtered_data.to_csv(index=False)
                     st.download_button(
                         label="💾 Download CSV File",
@@ -2163,11 +2163,11 @@ def show_data_explorer():
                     )
             
             with col2:
-                if st.button("📋 Copy to Clipboard", use_container_width=True):
+                if st.button("📋 Copy to Clipboard", width="stretch"):
                     st.info("📋 Data copied! (Feature simulated)")
             
             with col3:
-                if st.button("📧 Email Report", use_container_width=True):
+                if st.button("📧 Email Report", width="stretch"):
                     st.info("📧 Report sent! (Feature simulated)")
     else:
         st.warning("""
@@ -2244,7 +2244,7 @@ def show_analytics():
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("📧 Subscribe to Updates", use_container_width=True):
+        if st.button("📧 Subscribe to Updates", width="stretch"):
             st.success("✅ You'll be notified about new analytics features!")
 
 def show_settings():
@@ -2293,10 +2293,10 @@ def show_settings():
             
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("🧪 Test Connection", use_container_width=True):
+                if st.button("🧪 Test Connection", width="stretch"):
                     st.success("✅ Connection successful!")
             with col2:
-                if st.button("🔄 Reset to Default", use_container_width=True):
+                if st.button("🔄 Reset to Default", width="stretch"):
                     st.info("🔄 Settings reset to default values")
             
             st.markdown("</div>", unsafe_allow_html=True)
@@ -2450,7 +2450,7 @@ def show_settings():
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("💾 Save All Settings", use_container_width=True, type="primary"):
+        if st.button("💾 Save All Settings", width="stretch", type="primary"):
             st.success("✅ All settings saved successfully!")
             st.balloons()
 
